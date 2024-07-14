@@ -1,7 +1,13 @@
-use std::{fs::File, io::Read, process::exit, str::Lines};
+use std::{
+    fs::File,
+    io::{stderr, Read, Write},
+    process::exit,
+    str::Lines,
+};
 
 use clap::Parser;
 use copypasta::{ClipboardContext, ClipboardProvider};
+use home::home_dir;
 use rand::{thread_rng, Rng};
 
 #[derive(Parser, Debug)]
@@ -80,10 +86,20 @@ fn main() {
         if cli.length.is_none() {
             length = 4;
         }
-        let mut file = File::options().read(true).open("./words.txt").unwrap();
+        let file = File::options().read(true).open(
+            home_dir()
+                .expect("couldn't determine home directory")
+                .join(".local/share/pwgen/words.txt"),
+        );
+        if file.is_err() {
+            stderr()
+                .write(file.err().unwrap().to_string().as_bytes())
+                .unwrap();
+            exit(1);
+        }
         let mut words = String::new();
 
-        file.read_to_string(&mut words).unwrap();
+        file.unwrap().read_to_string(&mut words).unwrap();
 
         password = gen_with_words(length, words.lines());
     } else {
